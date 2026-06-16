@@ -4,7 +4,7 @@ import {
   Typography, Input,
 } from 'antd';
 import { FilePdfOutlined, FileImageOutlined, FileOutlined } from '@ant-design/icons';
-import { exportSVG } from '../../utils/exportSVG';
+import { exportSVG, DEFAULT_OPTS } from '../../utils/exportSVG';
 import type { DocOptions } from '../../utils/exportSVG';
 import { exportPDF } from '../../utils/exportPDF';
 import { exportPNG, exportJPEG } from '../../utils/exportRaster';
@@ -18,16 +18,6 @@ interface Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export const DEFAULT_OPTS: DocOptions = {
-  margin: 25,
-  pageSize: 'fit',
-  resolution: 72,
-  perforateFolds: false,
-  perforationLength: 5,
-  perforationGap: 1,
-  pageArrangement: 'horizontal',
-};
-
 const PAGE_RATIOS: Record<string, number> = {
   fit: 0,
   A4: 1 / 1.414,
@@ -37,13 +27,23 @@ const PAGE_RATIOS: Record<string, number> = {
 const ADJECTIVES = ['dino','neon','cosmic','funky','blazing','turbo','vivid','glitter','solar','pixel','retro','ultra'];
 const NOUNS = ['show','craft','pack','wrap','gift','drop','pop','spark','glow','dash','stack','twist'];
 
+const usedNames = new Set<string>();
+
 function randomName() {
-  const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  return `${a}${n}box`;
+  const total = ADJECTIVES.length * NOUNS.length;
+  if (usedNames.size >= total) usedNames.clear();  // exhausted all combos → start over
+  for (;;) {
+    const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    const name = `${a}${n}box`;
+    if (!usedNames.has(name)) {
+      usedNames.add(name);
+      return name;
+    }
+  }
 }
 
-export default function ExportDrawer({ open, onClose, svgRef, containerRef }: Props) {
+export default function ExportDrawer({ open, onClose, svgRef }: Props) {
   const [opts, setOpts] = useState<DocOptions>(DEFAULT_OPTS);
   const [loading, setLoading] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string>('');
@@ -72,15 +72,14 @@ export default function ExportDrawer({ open, onClose, svgRef, containerRef }: Pr
 
   async function handle(fmt: string) {
     const svg = svgRef.current;
-    const container = containerRef.current;
     if (!svg) return;
     setLoading(true);
     try {
       if (fmt === 'svg')    exportSVG(svg, opts, filename);
       else if (fmt === 'cricut') exportSVG(svg, { ...opts, cricut: true }, filename);
       else if (fmt === 'pdf')    await exportPDF(svg, opts, filename);
-      else if (fmt === 'png' && container)  await exportPNG(container, opts.resolution, filename);
-      else if (fmt === 'jpeg' && container) await exportJPEG(container, opts.resolution, filename);
+      else if (fmt === 'png')  await exportPNG(svg, opts.resolution, filename);
+      else if (fmt === 'jpeg') await exportJPEG(svg, opts.resolution, filename);
     } finally {
       setLoading(false);
     }
@@ -111,131 +110,133 @@ export default function ExportDrawer({ open, onClose, svgRef, containerRef }: Pr
       title={<span style={{ fontWeight: 700, color: '#FF6B6B' }}>Export</span>}
       open={open}
       onCancel={onClose}
+      afterOpenChange={o => { if (o) setProjectName(randomName()); }}
       footer={null}
-      width={800}
+      width={840}
       styles={{ body: { maxHeight: '80vh', overflowY: 'auto', paddingTop: 8 } }}
     >
       <Spin spinning={loading}>
-        {/* Live Preview */}
-        {previewSrc && (
-          <Card
-            size="small"
-            style={{ background: '#f5f5f5', marginBottom: 16, textAlign: 'center' }}
-            styles={{ body: { padding: 12 } }}
-          >
-            <Text style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 8 }}>Preview</Text>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={pageMockStyle}>
-                <img
-                  src={previewSrc}
-                  alt="preview"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+
+          {/* LEFT — live preview */}
+          <div style={{ width: 300, flexShrink: 0, position: 'sticky', top: 0 }}>
+            {previewSrc && (
+              <Card
+                size="small"
+                style={{ background: '#f5f5f5', textAlign: 'center' }}
+                styles={{ body: { padding: 12 } }}
+              >
+                <Text style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 8 }}>Preview</Text>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={pageMockStyle}>
+                    <img
+                      src={previewSrc}
+                      alt="preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+                <Text style={{ fontSize: 10, color: '#aaa', marginTop: 8, display: 'block' }}>
+                  {opts.pageSize === 'fit' ? 'Fit to drawing' : opts.pageSize}
+                  {' • '}{isLandscape ? 'Landscape' : 'Portrait'}
+                </Text>
+              </Card>
+            )}
+          </div>
+
+          {/* RIGHT — options */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Form layout="vertical" size="small">
+              <Divider style={{ margin: '0 0 12px' }}>
+                <Text style={{ fontSize: 12 }}>Project Name</Text>
+              </Divider>
+
+              <Form.Item style={{ marginBottom: 16 }}>
+                <Space.Compact style={{ width: '100%' }}>
+                  <Input
+                    value={projectName}
+                    onChange={e => setProjectName(e.target.value)}
+                    placeholder="project-name"
+                    addonAfter="-unfoldbox"
+                    style={{ flex: 1 }}
+                  />
+                  <Button onClick={() => setProjectName(randomName())} title="Random name">🎲</Button>
+                </Space.Compact>
+                <Text style={{ fontSize: 10, color: '#aaa', marginTop: 3, display: 'block' }}>
+                  Files will be saved as <em>{filename}.pdf</em>, <em>{filename}.svg</em>, etc.
+                </Text>
+              </Form.Item>
+
+              <Divider style={{ margin: '0 0 12px' }}>
+                <Text style={{ fontSize: 12 }}>Document Options</Text>
+              </Divider>
+
+              <Form.Item label="Margin (px)">
+                <InputNumber value={opts.margin} min={0} onChange={v => set('margin', v ?? 0)} style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item label="Page Size">
+                <Select
+                  value={opts.pageSize}
+                  onChange={v => set('pageSize', v)}
+                  options={[
+                    { value: 'fit', label: 'Fit page to drawing' },
+                    { value: 'A4', label: 'A4' },
+                    { value: 'Letter', label: 'Letter' },
+                  ]}
                 />
-              </div>
-            </div>
-            <Text style={{ fontSize: 10, color: '#aaa', marginTop: 8, display: 'block' }}>
-              {opts.pageSize === 'fit' ? 'Fit to drawing' : opts.pageSize}
-              {' • '}{opts.resolution} DPI
-              {' • '}{isLandscape ? 'Landscape' : 'Portrait'}
-            </Text>
-          </Card>
-        )}
-
-        <Form layout="vertical" size="small">
-          <Divider style={{ margin: '0 0 12px' }}>
-            <Text style={{ fontSize: 12 }}>Project Name</Text>
-          </Divider>
-
-          <Form.Item style={{ marginBottom: 16 }}>
-            <Space.Compact style={{ width: '100%' }}>
-              <Input
-                value={projectName}
-                onChange={e => setProjectName(e.target.value)}
-                placeholder="project-name"
-                addonAfter="-unfoldbox"
-                style={{ flex: 1 }}
-              />
-              <Button onClick={() => setProjectName(randomName())} title="Random name">🎲</Button>
-            </Space.Compact>
-            <Text style={{ fontSize: 10, color: '#aaa', marginTop: 3, display: 'block' }}>
-              Files will be saved as <em>{filename}.pdf</em>, <em>{filename}.svg</em>, etc.
-            </Text>
-          </Form.Item>
-
-          <Divider style={{ margin: '0 0 12px' }}>
-            <Text style={{ fontSize: 12 }}>Document Options</Text>
-          </Divider>
-
-          <Form.Item label="Margin (px)">
-            <InputNumber value={opts.margin} min={0} onChange={v => set('margin', v ?? 0)} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item label="Page Size">
-            <Select
-              value={opts.pageSize}
-              onChange={v => set('pageSize', v)}
-              options={[
-                { value: 'fit', label: 'Fit page to drawing' },
-                { value: 'A4', label: 'A4' },
-                { value: 'Letter', label: 'Letter' },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item label="Resolution (DPI)">
-            <InputNumber value={opts.resolution} min={36} max={600} onChange={v => set('resolution', v ?? 72)} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item label="Perforate Folds">
-            <Switch checked={opts.perforateFolds} onChange={v => set('perforateFolds', v)} />
-          </Form.Item>
-
-          {opts.perforateFolds && (
-            <>
-              <Form.Item label="Perforation Length">
-                <InputNumber value={opts.perforationLength} min={1} onChange={v => set('perforationLength', v ?? 5)} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item label="Perforation Gap">
-                <InputNumber value={opts.perforationGap} min={0.5} step={0.5} onChange={v => set('perforationGap', v ?? 1)} style={{ width: '100%' }} />
+
+              <Form.Item label="Perforate Folds">
+                <Switch checked={opts.perforateFolds} onChange={v => set('perforateFolds', v)} />
               </Form.Item>
-            </>
-          )}
 
-          <Form.Item label="Page Arrangement">
-            <Segmented
-              options={['Vertical', 'Horizontal']}
-              value={opts.pageArrangement === 'vertical' ? 'Vertical' : 'Horizontal'}
-              onChange={v => set('pageArrangement', v === 'Vertical' ? 'vertical' : 'horizontal')}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
+              {opts.perforateFolds && (
+                <>
+                  <Form.Item label="Perforation Length">
+                    <InputNumber value={opts.perforationLength} min={1} onChange={v => set('perforationLength', v ?? 5)} style={{ width: '100%' }} />
+                  </Form.Item>
+                  <Form.Item label="Perforation Gap">
+                    <InputNumber value={opts.perforationGap} min={0.5} step={0.5} onChange={v => set('perforationGap', v ?? 1)} style={{ width: '100%' }} />
+                  </Form.Item>
+                </>
+              )}
 
-          <Divider style={{ margin: '12px 0' }}>
-            <Text style={{ fontSize: 12 }}>Export Formats</Text>
-          </Divider>
+              <Form.Item label="Page Arrangement">
+                <Segmented
+                  options={['Vertical', 'Horizontal']}
+                  value={opts.pageArrangement === 'vertical' ? 'Vertical' : 'Horizontal'}
+                  onChange={v => set('pageArrangement', v === 'Vertical' ? 'vertical' : 'horizontal')}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
 
-          <Space direction="vertical" style={{ width: '100%' }} size={6}>
-            <Button block icon={<FilePdfOutlined />} onClick={() => handle('pdf')} type="primary"
-              style={{ background: 'linear-gradient(135deg,#FF6B6B,#FF8E53)', border: 'none' }}>
-              Export PDF
-            </Button>
-            <Button block icon={<FileOutlined />} onClick={() => handle('svg')}>
-              Export SVG
-            </Button>
-            <Button block icon={<FileOutlined />} onClick={() => handle('cricut')}>
-              Export Cricut SVG
-            </Button>
-            <Button block icon={<FileImageOutlined />} onClick={() => handle('png')}>
-              Export PNG
-            </Button>
-            <Button block icon={<FileImageOutlined />} onClick={() => handle('jpeg')}>
-              Export JPEG
-            </Button>
-          </Space>
-        </Form>
+              <Divider style={{ margin: '12px 0' }}>
+                <Text style={{ fontSize: 12 }}>Export Formats</Text>
+              </Divider>
+
+              <Space direction="vertical" style={{ width: '100%' }} size={6}>
+                <Button block icon={<FilePdfOutlined />} onClick={() => handle('pdf')} type="primary"
+                  style={{ background: 'linear-gradient(135deg,#FF6B6B,#FF8E53)', border: 'none' }}>
+                  Export PDF
+                </Button>
+                <Button block icon={<FileOutlined />} onClick={() => handle('svg')}>
+                  Export SVG
+                </Button>
+                <Button block icon={<FileOutlined />} onClick={() => handle('cricut')}>
+                  Export Cricut SVG
+                </Button>
+                <Button block icon={<FileImageOutlined />} onClick={() => handle('png')}>
+                  Export PNG
+                </Button>
+                <Button block icon={<FileImageOutlined />} onClick={() => handle('jpeg')}>
+                  Export JPEG
+                </Button>
+              </Space>
+            </Form>
+          </div>
+        </div>
       </Spin>
     </Modal>
   );
 }
-
-export type { DocOptions };

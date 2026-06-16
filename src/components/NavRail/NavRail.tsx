@@ -14,8 +14,8 @@ interface BoxType {
 const BOX_TYPES: BoxType[] = [
   {
     key: 'reverse-tuck',
-    label: 'Reverse Tuck End',
-    shortLabel: 'Reverse\nTuck',
+    label: 'Box',
+    shortLabel: 'Box',
     icon: <BoxPlotOutlined style={{ fontSize: 22 }} />,
     available: true,
   },

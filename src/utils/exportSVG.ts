@@ -9,6 +9,16 @@ export interface DocOptions {
   cricut?: boolean;
 }
 
+export const DEFAULT_OPTS: DocOptions = {
+  margin: 25,
+  pageSize: 'fit',
+  resolution: 150,
+  perforateFolds: false,
+  perforationLength: 5,
+  perforationGap: 1,
+  pageArrangement: 'horizontal',
+};
+
 export function exportSVG(svgEl: SVGSVGElement, opts: DocOptions, filename = 'unfoldbox') {
   const clone = svgEl.cloneNode(true) as SVGSVGElement;
 

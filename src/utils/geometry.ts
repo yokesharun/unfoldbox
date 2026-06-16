@@ -7,9 +7,7 @@ export interface BoxDimensions {
   thumbHoleDiameter: number;
   tuckFlapSize: number;
   glueFlapSize: number;
-  glueFlapAngle: number;
   materialThickness: number;
-  roundedCornersRadius: number;
   unit: Unit;
   ppi: number;
 }
@@ -33,7 +31,7 @@ export function convertDimensions(dims: BoxDimensions, newUnit: Unit): BoxDimens
   const DIMENSIONAL_KEYS: (keyof BoxDimensions)[] = [
     'length', 'width', 'height',
     'thumbHoleDiameter', 'tuckFlapSize', 'glueFlapSize',
-    'materialThickness', 'roundedCornersRadius',
+    'materialThickness',
   ];
   const decimals = newUnit === 'mm' ? 1 : newUnit === 'cm' ? 2 : newUnit === 'inch' ? 3 : 0;
   const factor = MM_PER_UNIT[dims.unit] / MM_PER_UNIT[newUnit];
@@ -52,14 +50,12 @@ export const DEFAULT_DIMS: BoxDimensions = {
   thumbHoleDiameter: 1,
   tuckFlapSize: 2,
   glueFlapSize: 1.5,
-  glueFlapAngle: 80,
   materialThickness: 0.05,
-  roundedCornersRadius: 0.5,
   unit: 'cm',
   ppi: 72,
 };
 
-export function toPx(value: number, unit: Unit, _ppi = 72): number {
+export function toPx(value: number, unit: Unit): number {
   switch (unit) {
     case 'cm':   return value * 10 * PX_PER_MM;
     case 'inch': return value * 25.4 * PX_PER_MM;

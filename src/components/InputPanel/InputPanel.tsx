@@ -111,18 +111,7 @@ export default function InputPanel({ dims, onChange }: Props) {
                 {numField('Thumb Hole Diameter', 'thumbHoleDiameter', 0)}
                 {numField('Tuck Flap Size', 'tuckFlapSize', 0.01)}
                 {numField('Glue Flap Size', 'glueFlapSize', 0.01)}
-                <Form.Item label={<Text style={{ fontSize: 12 }}>Glue Flap Angle</Text>} style={{ marginBottom: 8 }}>
-                  <InputNumber
-                    value={dims.glueFlapAngle}
-                    min={30} max={89} step={1}
-                    onChange={v => set('glueFlapAngle', v)}
-                    style={{ width: '100%' }}
-                    size="small"
-                    addonAfter="°"
-                  />
-                </Form.Item>
                 {numField('Material Thickness', 'materialThickness', 0, 0.01)}
-                {numField('Rounded Corners Radius', 'roundedCornersRadius', 0)}
               </>
             ),
           }]}
