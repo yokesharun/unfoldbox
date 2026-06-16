@@ -14,12 +14,11 @@ interface Props {
   showBleed?: boolean;
 }
 
-const CUT_COLOR  = '#FF1493';
-const CUT_WIDTH  = 2;
-const FOLD_COLOR = '#00BFFF';
-const FOLD_WIDTH = 1;
-const SEL_COLOR  = '#FF6B6B';
-const BLEED_PX   = 3 * PX_PER_MM;
+const CUT_COLOR = '#FF1493';
+const CUT_WIDTH = 2;
+const SEL_COLOR = '#FF6B6B';
+const BLEED_COLOR = '#aaa';
+const BLEED_PX = 3 * PX_PER_MM;
 
 const DielineCanvas = forwardRef<SVGSVGElement, Props>(
   ({ layout, themes, selectedPanel, onSelectPanel, docOpts, showLabels = true, showBleed = false }, ref) => {
@@ -66,7 +65,43 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
         </defs>
 
         <g transform={`translate(${margin}, ${margin})`}>
-          {/* Dieline content — blank, will be rebuilt */}
+          {/* Bleed guides */}
+          {showBleed && panels.map(p => (
+            <rect
+              key={`bleed-${p.id}`}
+              x={p.x - BLEED_PX} y={p.y - BLEED_PX}
+              width={p.w + BLEED_PX * 2} height={p.h + BLEED_PX * 2}
+              fill="none"
+              stroke={BLEED_COLOR}
+              strokeWidth={1}
+              strokeDasharray="3,3"
+              rx={(p.rx ?? 0) + BLEED_PX}
+            />
+          ))}
+
+          {/* Panels */}
+          {panels.map(p => (
+            <PanelShape
+              key={p.id}
+              p={p}
+              theme={themes[p.id]}
+              selected={p.id === selectedPanel}
+              onSelect={onSelectPanel}
+              showLabels={showLabels}
+              foldDash={foldDash}
+            />
+          ))}
+
+          {/* Fold lines */}
+          {foldLines.map((fl, i) => (
+            <line
+              key={i}
+              x1={fl.x1} y1={fl.y1} x2={fl.x2} y2={fl.y2}
+              stroke="#00BFFF"
+              strokeWidth={1}
+              strokeDasharray={foldDash}
+            />
+          ))}
         </g>
       </svg>
     );
@@ -86,13 +121,12 @@ interface PanelProps {
   foldDash: string;
 }
 
-function Panel({ p, theme, selected, onSelect, showLabels }: PanelProps) {
+function PanelShape({ p, theme, selected, onSelect, showLabels }: PanelProps) {
   const fill   = theme?.color ?? '#a8d5dc';
   const stroke = selected ? SEL_COLOR : CUT_COLOR;
   const sw     = selected ? CUT_WIDTH + 1 : CUT_WIDTH;
   const fontSize = Math.max(8, Math.min(p.w, p.h) * 0.11);
 
-  // Shape props — path panels use <path d=…>, rect panels use <rect x y w h>
   const shapeProps = p.path
     ? { d: p.path }
     : { x: p.x, y: p.y, width: p.w, height: p.h, rx: p.rx ?? 0 };
@@ -105,7 +139,7 @@ function Panel({ p, theme, selected, onSelect, showLabels }: PanelProps) {
         : <rect {...(shapeProps as React.SVGProps<SVGRectElement>)} fill={fill} stroke="none" />
       }
 
-      {/* Image fill (only when image is set) */}
+      {/* Image fill */}
       {theme?.imageUrl && (
         p.path
           ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={`url(#pat-${p.id})`} stroke="none" />
