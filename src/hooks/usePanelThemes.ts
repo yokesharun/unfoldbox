@@ -11,6 +11,8 @@ const PANEL_IDS = [
   'dust-flap-left', 'dust-flap-right',
   'bottom-tuck-front', 'bottom-tuck-back',
   'bottom-dust-left', 'bottom-dust-right',
+  // wrap-card parts
+  'wc-top-flap', 'wc-back', 'wc-front', 'wc-wing-left', 'wc-wing-right', 'wc-bottom-flap',
 ];
 
 const DEFAULT_COLOR = '#a8d5dc';

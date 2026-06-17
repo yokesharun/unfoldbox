@@ -1,5 +1,5 @@
 import { Form, InputNumber, Segmented, Divider, Collapse, Typography, Tag } from 'antd';
-import type { BoxDimensions, Unit } from '../../utils/geometry';
+import type { BoxDimensions, Unit, BoxType } from '../../utils/geometry';
 import { convertDimensions } from '../../utils/geometry';
 
 const { Text } = Typography;
@@ -7,6 +7,7 @@ const { Text } = Typography;
 interface Props {
   dims: BoxDimensions;
   onChange: (d: BoxDimensions) => void;
+  boxType?: BoxType;
 }
 
 function stepForUnit(unit: Unit) {
@@ -18,7 +19,8 @@ function stepForUnit(unit: Unit) {
   }
 }
 
-export default function InputPanel({ dims, onChange }: Props) {
+export default function InputPanel({ dims, onChange, boxType = 'reverse-tuck' }: Props) {
+  const isWrapCard = boxType === 'wrap-card';
   function set(key: keyof BoxDimensions, value: number | string | null) {
     if (value === null) return;
     onChange({ ...dims, [key]: value });
@@ -95,9 +97,16 @@ export default function InputPanel({ dims, onChange }: Props) {
           <Text style={{ fontSize: 11, color: '#888' }}>Dimensions</Text>
         </Divider>
 
-        {numField('Length', 'length', 0.01)}
-        {numField('Width', 'width', 0.01)}
-        {numField('Height', 'height', 0.01)}
+        {numField(isWrapCard ? 'Card Width' : 'Length', 'length', 0.01)}
+        {numField(isWrapCard ? 'Wing Width' : 'Width', 'width', 0.01)}
+        {numField(isWrapCard ? 'Panel Height' : 'Height', 'height', 0.01)}
+
+        {isWrapCard && (
+          <>
+            {numField('Top Flap Height', 'wrapTopFlap', 0.01)}
+            {numField('Bottom Flap Height', 'wrapBottomFlap', 0.01)}
+          </>
+        )}
 
         <Collapse
           size="small"
@@ -106,7 +115,11 @@ export default function InputPanel({ dims, onChange }: Props) {
           items={[{
             key: '1',
             label: <Text style={{ fontSize: 12 }}>Optional Parameters</Text>,
-            children: (
+            children: isWrapCard ? (
+              <>
+                {numField('Material Thickness', 'materialThickness', 0, 0.01)}
+              </>
+            ) : (
               <>
                 {numField('Thumb Hole Diameter', 'thumbHoleDiameter', 0)}
                 {numField('Tuck Flap Size', 'tuckFlapSize', 0.01)}

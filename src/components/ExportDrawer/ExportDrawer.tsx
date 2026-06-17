@@ -4,7 +4,7 @@ import {
   Typography, Input,
 } from 'antd';
 import { FilePdfOutlined, FileImageOutlined, FileOutlined } from '@ant-design/icons';
-import { exportSVG, DEFAULT_OPTS } from '../../utils/exportSVG';
+import { exportSVG, stripGuides, DEFAULT_OPTS } from '../../utils/exportSVG';
 import type { DocOptions } from '../../utils/exportSVG';
 import { exportPDF } from '../../utils/exportPDF';
 import { exportPNG, exportJPEG } from '../../utils/exportRaster';
@@ -60,6 +60,7 @@ export default function ExportDrawer({ open, onClose, svgRef }: Props) {
     const vb = svg.viewBox.baseVal;
     if (vb.width && vb.height) setSvgAspect(vb.height / vb.width);
     const clone = svg.cloneNode(true) as SVGSVGElement;
+    if (opts.cleanCut) stripGuides(clone);
     const str = new XMLSerializer().serializeToString(clone);
     const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -78,8 +79,8 @@ export default function ExportDrawer({ open, onClose, svgRef }: Props) {
       if (fmt === 'svg')    exportSVG(svg, opts, filename);
       else if (fmt === 'cricut') exportSVG(svg, { ...opts, cricut: true }, filename);
       else if (fmt === 'pdf')    await exportPDF(svg, opts, filename);
-      else if (fmt === 'png')  await exportPNG(svg, opts.resolution, filename);
-      else if (fmt === 'jpeg') await exportJPEG(svg, opts.resolution, filename);
+      else if (fmt === 'png')  await exportPNG(svg, opts, filename);
+      else if (fmt === 'jpeg') await exportJPEG(svg, opts, filename);
     } finally {
       setLoading(false);
     }
@@ -185,6 +186,13 @@ export default function ExportDrawer({ open, onClose, svgRef }: Props) {
                     { value: 'Letter', label: 'Letter' },
                   ]}
                 />
+              </Form.Item>
+
+              <Form.Item
+                label="Cut artwork only"
+                tooltip="Remove fold lines, labels & guide marks — export the cut outlines only"
+              >
+                <Switch checked={!!opts.cleanCut} onChange={v => set('cleanCut', v)} />
               </Form.Item>
 
               <Form.Item label="Perforate Folds">

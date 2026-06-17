@@ -16,7 +16,7 @@ import BoxCalculator from './components/BoxCalculator/BoxCalculator';
 import { DEFAULT_OPTS } from './utils/exportSVG';
 import type { DocOptions } from './utils/exportSVG';
 import { DEFAULT_DIMS } from './utils/geometry';
-import type { BoxDimensions } from './utils/geometry';
+import type { BoxDimensions, BoxType } from './utils/geometry';
 import { useBoxGeometry } from './hooks/useBoxGeometry';
 import { usePanelThemes } from './hooks/usePanelThemes';
 
@@ -57,7 +57,7 @@ export default function App() {
   const [dimsDrawerOpen, setDimsDrawerOpen] = useState(false);
   const [customiseDrawerOpen, setCustomiseDrawerOpen] = useState(false);
 
-  const layout = useBoxGeometry(dims);
+  const layout = useBoxGeometry(dims, activeBoxType as BoxType);
   const { themes, setColor, setImage, resetPanel } = usePanelThemes();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -191,7 +191,7 @@ export default function App() {
                   📦 Dimensions
                 </Typography.Text>
               </div>
-              <InputPanel dims={dims} onChange={setDims} />
+              <InputPanel dims={dims} onChange={setDims} boxType={activeBoxType as BoxType} />
             </Sider>
           )}
 
@@ -284,7 +284,7 @@ export default function App() {
                   label: <span style={{ fontWeight: 600, fontSize: isMobile ? 12 : 14 }}>🧊 3D View</span>,
                   children: (
                     <div style={{ height: tabContentH, padding: isMobile ? 8 : 16, background: '#fafafa' }}>
-                      <Box3DViewer dims={dims} themes={themes} />
+                      <Box3DViewer dims={dims} themes={themes} boxType={activeBoxType as BoxType} />
                     </div>
                   ),
                 },
@@ -381,7 +381,7 @@ export default function App() {
         onClose={() => setDimsDrawerOpen(false)}
         styles={{ body: { padding: 0 } }}
       >
-        <InputPanel dims={dims} onChange={setDims} />
+        <InputPanel dims={dims} onChange={setDims} boxType={activeBoxType as BoxType} />
       </Drawer>
 
       <Drawer

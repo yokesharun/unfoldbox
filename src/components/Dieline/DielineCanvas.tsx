@@ -135,14 +135,14 @@ function PanelShape({ p, theme, selected, onSelect, showLabels }: PanelProps) {
     <g onClick={() => onSelect(p.id)} style={{ cursor: 'pointer' }}>
       {/* Colour fill */}
       {p.path
-        ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={fill} stroke="none" />
+        ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={fill} fillRule="evenodd" stroke="none" />
         : <rect {...(shapeProps as React.SVGProps<SVGRectElement>)} fill={fill} stroke="none" />
       }
 
       {/* Image fill */}
       {theme?.imageUrl && (
         p.path
-          ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={`url(#pat-${p.id})`} stroke="none" />
+          ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={`url(#pat-${p.id})`} fillRule="evenodd" stroke="none" />
           : <rect {...(shapeProps as React.SVGProps<SVGRectElement>)} fill={`url(#pat-${p.id})`} stroke="none" />
       )}
 
