@@ -4,7 +4,7 @@ import {
 } from 'antd';
 import {
   ExportOutlined, BoxPlotOutlined, TagsOutlined, ColumnWidthOutlined, CalculatorOutlined,
-  ControlOutlined, BgColorsOutlined, AppstoreOutlined, GoldOutlined, BorderOutlined,
+  ControlOutlined, BgColorsOutlined, AppstoreOutlined, GoldOutlined, BorderOutlined, ContainerOutlined,
 } from '@ant-design/icons';
 import InputPanel from './components/InputPanel/InputPanel';
 import DielineCanvas from './components/Dieline/DielineCanvas';
@@ -40,6 +40,7 @@ const BOX_TYPES = [
   { key: 'straight-tuck', label: 'Straight Tuck', icon: <AppstoreOutlined />, available: false },
   { key: 'tuck-top', label: 'Tuck Top', icon: <GoldOutlined />, available: false },
   { key: 'sleeve', label: 'Sleeve', icon: <BorderOutlined />, available: false },
+  { key: 'dust-flap', label: 'Dust Flap', icon: <ContainerOutlined />, available: false },
 ];
 
 const HEADER_H = 52;

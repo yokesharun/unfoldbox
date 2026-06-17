@@ -1,5 +1,5 @@
 import { Tooltip, Typography } from 'antd';
-import { BoxPlotOutlined, AppstoreOutlined, GoldOutlined, BorderOutlined } from '@ant-design/icons';
+import { BoxPlotOutlined, AppstoreOutlined, GoldOutlined, BorderOutlined, ContainerOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -38,6 +38,13 @@ const BOX_TYPES: BoxType[] = [
     label: 'Sleeve Box',
     shortLabel: 'Sleeve\nBox',
     icon: <BorderOutlined style={{ fontSize: 22 }} />,
+    available: false,
+  },
+  {
+    key: 'dust-flap',
+    label: 'Cut Line with Dust Flaps',
+    shortLabel: 'Dust\nFlap',
+    icon: <ContainerOutlined style={{ fontSize: 22 }} />,
     available: false,
   },
 ];
