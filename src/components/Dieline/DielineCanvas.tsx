@@ -93,13 +93,24 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
           ))}
 
           {/* Fold lines */}
-          {foldLines.map((fl, i) => (
+          {foldLines.filter(fl => fl.type !== 'locking-slit').map((fl, i) => (
             <line
               key={i}
               x1={fl.x1} y1={fl.y1} x2={fl.x2} y2={fl.y2}
               stroke="#00BFFF"
               strokeWidth={1}
               strokeDasharray={foldDash}
+            />
+          ))}
+
+          {/* Locking slits (dotted pink cut lines) */}
+          {foldLines.filter(fl => fl.type === 'locking-slit').map((fl, i) => (
+            <line
+              key={`ls-${i}`}
+              x1={fl.x1} y1={fl.y1} x2={fl.x2} y2={fl.y2}
+              stroke="#FF1493"
+              strokeWidth={2}
+              strokeDasharray="3,3"
             />
           ))}
         </g>

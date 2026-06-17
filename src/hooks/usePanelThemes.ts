@@ -6,11 +6,18 @@ export interface PanelTheme {
 }
 
 const PANEL_IDS = [
+  // reverse-tuck box
   'glue-flap', 'left-side', 'front', 'right-side', 'back',
   'tuck-flap-front', 'tuck-flap-back',
   'dust-flap-left', 'dust-flap-right',
   'bottom-tuck-front', 'bottom-tuck-back',
   'bottom-dust-left', 'bottom-dust-right',
+  // cut-line with dust flaps box
+  'df-glue-flap', 'df-front', 'df-left-side', 'df-back', 'df-right-side',
+  'df-top-tuck-front', 'df-top-tuck-back',
+  'df-top-dust-left', 'df-top-dust-right',
+  'df-bottom-tuck-front', 'df-bottom-tuck-back',
+  'df-bottom-dust-left', 'df-bottom-dust-right',
 ];
 
 const DEFAULT_COLOR = '#a8d5dc';

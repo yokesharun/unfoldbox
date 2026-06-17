@@ -40,7 +40,7 @@ const BOX_TYPES = [
   { key: 'straight-tuck', label: 'Straight Tuck', icon: <AppstoreOutlined />, available: false },
   { key: 'tuck-top', label: 'Tuck Top', icon: <GoldOutlined />, available: false },
   { key: 'sleeve', label: 'Sleeve', icon: <BorderOutlined />, available: false },
-  { key: 'dust-flap', label: 'Dust Flap', icon: <ContainerOutlined />, available: false },
+  { key: 'dust-flap', label: 'Dust Flap', icon: <ContainerOutlined />, available: true },
 ];
 
 const HEADER_H = 52;
@@ -58,7 +58,7 @@ export default function App() {
   const [dimsDrawerOpen, setDimsDrawerOpen] = useState(false);
   const [customiseDrawerOpen, setCustomiseDrawerOpen] = useState(false);
 
-  const layout = useBoxGeometry(dims);
+  const layout = useBoxGeometry(dims, activeBoxType);
   const { themes, setColor, setImage, resetPanel } = usePanelThemes();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

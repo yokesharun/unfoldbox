@@ -87,7 +87,7 @@ export interface PanelRect {
 }
 
 export interface Line {
-  x1: number; y1: number; x2: number; y2: number; type: 'fold' | 'cut';
+  x1: number; y1: number; x2: number; y2: number; type: 'fold' | 'cut' | 'locking-slit';
 }
 
 export function computeLayout(d: BoxDimensions): DieleineLayout {
@@ -227,6 +227,105 @@ function notchedPanelPath(
       'Z',
     ].join(' ');
   }
+}
+
+export function computeDustFlapLayout(d: BoxDimensions): DieleineLayout {
+  const pad   = 24;
+  const L     = toPx(d.length, d.unit);
+  const W     = toPx(d.width, d.unit);
+  const H     = toPx(d.height, d.unit);
+  const tuck  = toPx(d.tuckFlapSize, d.unit);
+  const glueW = toPx(d.glueFlapSize, d.unit);
+
+  const tuckH = tuck * 1.5;   // rectangular tuck flap height
+  const dustH = tuck * 0.75;  // rectangular dust flap height (shorter)
+
+  // Columns: Glue | Front | LeftSide | Back | RightSide
+  const col0 = pad;
+  const col1 = col0 + glueW;
+  const col2 = col1 + L;
+  const col3 = col2 + W;
+  const col4 = col3 + L;
+  const end  = col4 + W;
+
+  // Rows (body occupies row1..row2; tuck flaps extend above/below)
+  const row1 = pad + tuckH;
+  const row2 = row1 + H;
+
+  const svgWidth  = end + pad;
+  const svgHeight = row2 + tuckH + pad;
+
+  // Glue flap: same trapezoid style as reverse-tuck for consistency
+  const gy = H * 0.16;
+  const gluePath = [
+    `M ${col1},${row1}`,
+    `L ${col0},${row1 + gy}`,
+    `L ${col0},${row2 - gy}`,
+    `L ${col1},${row2}`,
+    'Z',
+  ].join(' ');
+
+  const panels: PanelRect[] = [
+    // Body
+    { id: 'df-glue-flap',  label: 'Glue Flap',   x: col0, y: row1, w: glueW, h: H, path: gluePath },
+    { id: 'df-front',      label: 'Front',         x: col1, y: row1, w: L, h: H },
+    { id: 'df-left-side',  label: 'Left Side',     x: col2, y: row1, w: W, h: H },
+    { id: 'df-back',       label: 'Back',          x: col3, y: row1, w: L, h: H },
+    { id: 'df-right-side', label: 'Right Side',    x: col4, y: row1, w: W, h: H },
+
+    // Top tuck flaps (rectangular, on both front and back)
+    { id: 'df-top-tuck-front', label: 'Top Tuck (Front)', x: col1, y: row1 - tuckH, w: L, h: tuckH },
+    { id: 'df-top-tuck-back',  label: 'Top Tuck (Back)',  x: col3, y: row1 - tuckH, w: L, h: tuckH },
+
+    // Top dust flaps (rectangular, on both sides)
+    { id: 'df-top-dust-left',  label: 'Top Dust (Left)',  x: col2, y: row1 - dustH, w: W, h: dustH },
+    { id: 'df-top-dust-right', label: 'Top Dust (Right)', x: col4, y: row1 - dustH, w: W, h: dustH },
+
+    // Bottom tuck flaps
+    { id: 'df-bottom-tuck-front', label: 'Bottom Tuck (Front)', x: col1, y: row2, w: L, h: tuckH },
+    { id: 'df-bottom-tuck-back',  label: 'Bottom Tuck (Back)',  x: col3, y: row2, w: L, h: tuckH },
+
+    // Bottom dust flaps
+    { id: 'df-bottom-dust-left',  label: 'Bottom Dust (Left)',  x: col2, y: row2, w: W, h: dustH },
+    { id: 'df-bottom-dust-right', label: 'Bottom Dust (Right)', x: col4, y: row2, w: W, h: dustH },
+  ];
+
+  // Slit placement: dust flap is W wide; slit straddles the column fold at that distance from tuck edge
+  const slitLen  = W * 0.45;
+  const slitTopY    = row1 - tuckH * 0.3;   // 30% down from top of tuck flap
+  const slitBotY    = row2 + tuckH * 0.7;   // 70% down into bottom tuck flap
+
+  const foldLines: Line[] = [
+    // Vertical body folds
+    { x1: col1, y1: row1, x2: col1, y2: row2, type: 'fold' },
+    { x1: col2, y1: row1, x2: col2, y2: row2, type: 'fold' },
+    { x1: col3, y1: row1, x2: col3, y2: row2, type: 'fold' },
+    { x1: col4, y1: row1, x2: col4, y2: row2, type: 'fold' },
+    // Horizontal body folds
+    { x1: col1, y1: row1, x2: end, y2: row1, type: 'fold' },
+    { x1: col1, y1: row2, x2: end, y2: row2, type: 'fold' },
+    // Tuck flap base folds (top)
+    { x1: col1, y1: row1 - tuckH, x2: col1 + L, y2: row1 - tuckH, type: 'fold' },
+    { x1: col3, y1: row1 - tuckH, x2: col3 + L, y2: row1 - tuckH, type: 'fold' },
+    // Tuck flap base folds (bottom)
+    { x1: col1, y1: row2 + tuckH, x2: col1 + L, y2: row2 + tuckH, type: 'fold' },
+    { x1: col3, y1: row2 + tuckH, x2: col3 + L, y2: row2 + tuckH, type: 'fold' },
+
+    // Locking slits on top tuck-front (2 slits, one near each side where dust flap corner lands)
+    { x1: col2 - slitLen, y1: slitTopY, x2: col2,           y2: slitTopY, type: 'locking-slit' },
+    { x1: col2,           y1: slitTopY, x2: col2 + slitLen, y2: slitTopY, type: 'locking-slit' },
+    // Locking slits on top tuck-back
+    { x1: col4 - slitLen, y1: slitTopY, x2: col4,           y2: slitTopY, type: 'locking-slit' },
+    { x1: col4,           y1: slitTopY, x2: col4 + slitLen, y2: slitTopY, type: 'locking-slit' },
+    // Locking slits on bottom tuck-front
+    { x1: col2 - slitLen, y1: slitBotY, x2: col2,           y2: slitBotY, type: 'locking-slit' },
+    { x1: col2,           y1: slitBotY, x2: col2 + slitLen, y2: slitBotY, type: 'locking-slit' },
+    // Locking slits on bottom tuck-back
+    { x1: col4 - slitLen, y1: slitBotY, x2: col4,           y2: slitBotY, type: 'locking-slit' },
+    { x1: col4,           y1: slitBotY, x2: col4 + slitLen, y2: slitBotY, type: 'locking-slit' },
+  ];
+
+  return { svgWidth, svgHeight, panels, foldLines };
 }
 
 /** Pure trapezoid dust flap: wide base corners angle straight up to a short flat top. */

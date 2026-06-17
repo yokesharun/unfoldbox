@@ -45,7 +45,7 @@ const BOX_TYPES: BoxType[] = [
     label: 'Cut Line with Dust Flaps',
     shortLabel: 'Dust\nFlap',
     icon: <ContainerOutlined style={{ fontSize: 22 }} />,
-    available: false,
+    available: true,
   },
 ];
 
