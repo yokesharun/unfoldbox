@@ -26,11 +26,24 @@ export const DEFAULT_OPTS: DocOptions = {
  *  - fold lines (<line>) and labels (<text>)
  *  - all stroke-only outlines (fill="none") — cut outlines, bleed/safe guides
  * The slit hole stays (it lives in the filled panel path via fill-rule="evenodd").
+ *
+ * Each remaining solid-colour fill is then given a thin stroke in its own colour.
+ * Adjacent panels are separate shapes, so without this the rasteriser leaves
+ * hairline anti-alias seams (visible "lines") between them — the self-coloured
+ * stroke overlaps neighbours and seals those gaps without showing any line.
  */
 export function stripGuides(svg: SVGSVGElement) {
   svg.querySelectorAll('line').forEach(el => el.remove());
   svg.querySelectorAll('text').forEach(el => el.remove());
   svg.querySelectorAll('[fill="none"]').forEach(el => el.remove());
+
+  svg.querySelectorAll('path, rect').forEach(el => {
+    const fill = el.getAttribute('fill');
+    if (!fill || fill === 'none' || fill.startsWith('url(')) return; // skip patterns/images
+    el.setAttribute('stroke', fill);
+    el.setAttribute('stroke-width', '1.5');
+    el.setAttribute('stroke-linejoin', 'round');
+  });
 }
 
 export function prepareSvgClone(svgEl: SVGSVGElement, opts: DocOptions): SVGSVGElement {
