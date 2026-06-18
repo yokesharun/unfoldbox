@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ColorPicker, Upload, Button, Typography, Tooltip, Collapse, Tag, Space } from 'antd';
 import { UploadOutlined, DeleteOutlined, PictureOutlined, BgColorsOutlined } from '@ant-design/icons';
-import type { PanelTheme } from '../../hooks/usePanelThemes';
+import type { PanelTheme, ImgTransform } from '../../hooks/usePanelThemes';
+import { DEFAULT_IMG } from '../../hooks/usePanelThemes';
 import type { DieleineLayout, BoxDimensions } from '../../utils/geometry';
 import { pxToMm } from '../../utils/geometry';
 
@@ -14,6 +15,7 @@ interface Props {
   onSelectPanel: (id: string) => void;
   setColor: (id: string, c: string) => void;
   setImage: (id: string, url: string | undefined) => void;
+  setImageTransform: (id: string, t: Partial<ImgTransform>) => void;
   resetPanel: (id: string) => void;
   dims: BoxDimensions;
 }
@@ -32,7 +34,7 @@ function suggestSize(pxW: number, pxH: number, ppi: number) {
 
 export default function PanelCustomiser({
   layout, themes, selectedPanel, onSelectPanel,
-  setColor, setImage, resetPanel, dims,
+  setColor, setImage, setImageTransform, resetPanel, dims,
 }: Props) {
   const [activeKeys, setActiveKeys] = useState<string[]>(
     selectedPanel ? [selectedPanel] : layout.panels[0] ? [layout.panels[0].id] : []
@@ -46,8 +48,10 @@ export default function PanelCustomiser({
   }
 
   function handleImageUpload(panelId: string, file: File) {
-    const url = URL.createObjectURL(file);
-    setImage(panelId, url);
+    // Read as data URL so the image embeds in exports and survives reloads.
+    const reader = new FileReader();
+    reader.onload = () => setImage(panelId, reader.result as string);
+    reader.readAsDataURL(file);
     return false;
   }
 
@@ -152,16 +156,29 @@ export default function PanelCustomiser({
                     display: 'block',
                   }}
                 />
-                <Button
-                  size="small"
-                  type="link"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => setImage(panel.id, undefined)}
-                  style={{ padding: '2px 0', height: 'auto', fontSize: 11 }}
-                >
-                  Remove image
-                </Button>
+                <Text style={{ fontSize: 10, color: '#aaa', display: 'block', marginTop: 4 }}>
+                  Drag the image / handles on the canvas to move, resize & rotate.
+                </Text>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => setImageTransform(panel.id, { ...DEFAULT_IMG })}
+                    style={{ padding: '2px 0', height: 'auto', fontSize: 11 }}
+                  >
+                    Reset position
+                  </Button>
+                  <Button
+                    size="small"
+                    type="link"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => setImage(panel.id, undefined)}
+                    style={{ padding: '2px 0', height: 'auto', fontSize: 11 }}
+                  >
+                    Remove image
+                  </Button>
+                </div>
               </div>
             )}
           </div>

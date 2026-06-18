@@ -1,7 +1,8 @@
-import { forwardRef } from 'react';
+import { forwardRef, useRef } from 'react';
 import type { DieleineLayout, PanelRect } from '../../utils/geometry';
 import { PX_PER_MM } from '../../utils/geometry';
-import type { PanelTheme } from '../../hooks/usePanelThemes';
+import type { PanelTheme, ImgTransform } from '../../hooks/usePanelThemes';
+import { DEFAULT_IMG } from '../../hooks/usePanelThemes';
 import type { DocOptions } from '../../utils/exportSVG';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
   docOpts: DocOptions;
   showLabels?: boolean;
   showBleed?: boolean;
+  onImageTransform?: (id: string, partial: Partial<ImgTransform>) => void;
 }
 
 const CUT_COLOR = '#FF1493';
@@ -20,14 +22,25 @@ const SEL_COLOR = '#FF6B6B';
 const BLEED_COLOR = '#aaa';
 const BLEED_PX = 3 * PX_PER_MM;
 
+/** SVG transform that moves/scales/rotates a panel-fitted image about the panel centre. */
+function imgTransform(p: PanelRect, t: ImgTransform = DEFAULT_IMG): string {
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  return `translate(${t.x} ${t.y}) rotate(${t.rotation} ${cx} ${cy}) translate(${cx} ${cy}) scale(${t.scale}) translate(${-cx} ${-cy})`;
+}
+
 const DielineCanvas = forwardRef<SVGSVGElement, Props>(
-  ({ layout, themes, selectedPanel, onSelectPanel, docOpts, showLabels = true, showBleed = false }, ref) => {
+  ({ layout, themes, selectedPanel, onSelectPanel, docOpts, showLabels = true, showBleed = false, onImageTransform }, ref) => {
     const { svgWidth, svgHeight, panels, foldLines } = layout;
     const margin = docOpts.margin;
+    const gRef = useRef<SVGGElement>(null);
 
     const foldDash = docOpts.perforateFolds
       ? `${docOpts.perforationLength},${docOpts.perforationGap}`
       : '5,3';
+
+    const selPanel = panels.find(p => p.id === selectedPanel);
+    const selTheme = selectedPanel ? themes[selectedPanel] : undefined;
 
     return (
       <svg
@@ -38,33 +51,23 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
         xmlns="http://www.w3.org/2000/svg"
         style={{ background: '#fff', display: 'block', borderRadius: 4 }}
       >
-        {/* Image pattern defs */}
+        {/* Clip paths for image panels */}
         <defs>
           {panels.map(p => {
             const t = themes[p.id];
             if (!t?.imageUrl) return null;
             return (
-              <pattern
-                key={`pat-${p.id}`}
-                id={`pat-${p.id}`}
-                patternUnits="userSpaceOnUse"
-                x={margin + p.x}
-                y={margin + p.y}
-                width={p.w}
-                height={p.h}
-              >
-                <rect x={0} y={0} width={p.w} height={p.h} fill={t.color ?? '#ffffff'} />
-                <image
-                  href={t.imageUrl}
-                  x={0} y={0} width={p.w} height={p.h}
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </pattern>
+              <clipPath key={`clip-${p.id}`} id={`clip-${p.id}`} clipPathUnits="userSpaceOnUse">
+                {p.path
+                  ? <path d={p.path} />
+                  : <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={p.rx ?? 0} />
+                }
+              </clipPath>
             );
           })}
         </defs>
 
-        <g transform={`translate(${margin}, ${margin})`}>
+        <g ref={gRef} transform={`translate(${margin}, ${margin})`}>
           {/* Bleed guides */}
           {showBleed && panels.map(p => (
             <rect
@@ -88,7 +91,6 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
               selected={p.id === selectedPanel}
               onSelect={onSelectPanel}
               showLabels={showLabels}
-              foldDash={foldDash}
             />
           ))}
 
@@ -102,6 +104,16 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
               strokeDasharray={foldDash}
             />
           ))}
+
+          {/* Image edit handles (never exported — class .dieline-editor) */}
+          {onImageTransform && selPanel && selTheme?.imageUrl && (
+            <ImageEditOverlay
+              p={selPanel}
+              img={selTheme.img ?? DEFAULT_IMG}
+              gRef={gRef}
+              onChange={partial => onImageTransform(selPanel.id, partial)}
+            />
+          )}
         </g>
       </svg>
     );
@@ -109,7 +121,7 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
 );
 
 // ---------------------------------------------------------------------------
-// Panel sub-component — renders fill + image + outline + label for one panel
+// Panel sub-component — fill + clipped image + outline + label
 // ---------------------------------------------------------------------------
 
 interface PanelProps {
@@ -118,7 +130,6 @@ interface PanelProps {
   selected: boolean;
   onSelect: (id: string) => void;
   showLabels: boolean;
-  foldDash: string;
 }
 
 function PanelShape({ p, theme, selected, onSelect, showLabels }: PanelProps) {
@@ -139,11 +150,17 @@ function PanelShape({ p, theme, selected, onSelect, showLabels }: PanelProps) {
         : <rect {...(shapeProps as React.SVGProps<SVGRectElement>)} fill={fill} stroke="none" />
       }
 
-      {/* Image fill */}
+      {/* Image fill — clipped to the panel, transformed (move/scale/rotate) */}
       {theme?.imageUrl && (
-        p.path
-          ? <path {...(shapeProps as React.SVGProps<SVGPathElement>)} fill={`url(#pat-${p.id})`} fillRule="evenodd" stroke="none" />
-          : <rect {...(shapeProps as React.SVGProps<SVGRectElement>)} fill={`url(#pat-${p.id})`} stroke="none" />
+        <g clipPath={`url(#clip-${p.id})`}>
+          <image
+            href={theme.imageUrl}
+            x={p.x} y={p.y} width={p.w} height={p.h}
+            preserveAspectRatio="xMidYMid meet"
+            transform={imgTransform(p, theme.img)}
+            style={{ pointerEvents: 'none' }}
+          />
+        </g>
       )}
 
       {/* Cut outline */}
@@ -163,6 +180,106 @@ function PanelShape({ p, theme, selected, onSelect, showLabels }: PanelProps) {
           {p.label}
         </text>
       )}
+    </g>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Image edit overlay — move / resize / rotate handles for the selected panel
+// ---------------------------------------------------------------------------
+
+type DragMode = 'move' | 'scale' | 'rotate';
+interface DragState {
+  mode: DragMode;
+  start: { x: number; y: number };
+  startImg: ImgTransform;
+  cx: number;
+  cy: number;
+}
+
+interface OverlayProps {
+  p: PanelRect;
+  img: ImgTransform;
+  gRef: React.RefObject<SVGGElement | null>;
+  onChange: (partial: Partial<ImgTransform>) => void;
+}
+
+const HANDLE_R = 7;
+const ROTATE_OFFSET = 28;
+
+function ImageEditOverlay({ p, img, gRef, onChange }: OverlayProps) {
+  const drag = useRef<DragState | null>(null);
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+
+  function toUser(e: React.PointerEvent): { x: number; y: number } {
+    const g = gRef.current;
+    const ctm = g?.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return { x: pt.x, y: pt.y };
+  }
+
+  function onDown(e: React.PointerEvent<SVGElement>) {
+    e.stopPropagation();
+    const mode = (e.currentTarget.dataset.mode as DragMode) ?? 'move';
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { mode, start: toUser(e), startImg: { ...img }, cx, cy };
+  }
+
+  function onMove(e: React.PointerEvent<SVGElement>) {
+    const d = drag.current;
+    if (!d) return;
+    const cur = toUser(e);
+    if (d.mode === 'move') {
+      onChange({ x: d.startImg.x + (cur.x - d.start.x), y: d.startImg.y + (cur.y - d.start.y) });
+    } else if (d.mode === 'scale') {
+      const d0 = Math.hypot(d.start.x - d.cx, d.start.y - d.cy) || 1;
+      const d1 = Math.hypot(cur.x - d.cx, cur.y - d.cy);
+      const s = Math.min(8, Math.max(0.1, d.startImg.scale * (d1 / d0)));
+      onChange({ scale: s });
+    } else {
+      const a0 = Math.atan2(d.start.y - d.cy, d.start.x - d.cx);
+      const a1 = Math.atan2(cur.y - d.cy, cur.x - d.cx);
+      onChange({ rotation: d.startImg.rotation + (a1 - a0) * 180 / Math.PI });
+    }
+  }
+
+  function onUp(e: React.PointerEvent<SVGElement>) {
+    drag.current = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }
+
+  return (
+    <g className="dieline-editor">
+      {/* edit frame */}
+      <rect
+        x={p.x} y={p.y} width={p.w} height={p.h}
+        fill="none" stroke={SEL_COLOR} strokeWidth={1} strokeDasharray="4,3"
+        pointerEvents="none"
+      />
+      {/* move area */}
+      <rect
+        data-mode="move"
+        x={p.x} y={p.y} width={p.w} height={p.h}
+        fill="transparent" style={{ cursor: 'move' }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+      />
+      {/* rotate handle (top-centre) */}
+      <line x1={cx} y1={p.y} x2={cx} y2={p.y - ROTATE_OFFSET} stroke={SEL_COLOR} strokeWidth={1} pointerEvents="none" />
+      <circle
+        data-mode="rotate"
+        cx={cx} cy={p.y - ROTATE_OFFSET} r={HANDLE_R}
+        fill="#fff" stroke={SEL_COLOR} strokeWidth={1.5} style={{ cursor: 'grab' }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+      />
+      {/* resize handle (bottom-right) */}
+      <circle
+        data-mode="scale"
+        cx={p.x + p.w} cy={p.y + p.h} r={HANDLE_R}
+        fill={SEL_COLOR} stroke="#fff" strokeWidth={1.5} style={{ cursor: 'nwse-resize' }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}
+      />
     </g>
   );
 }

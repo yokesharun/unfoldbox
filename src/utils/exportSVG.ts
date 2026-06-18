@@ -32,7 +32,7 @@ export const DEFAULT_OPTS: DocOptions = {
  * hairline anti-alias seams (visible "lines") between them — the self-coloured
  * stroke overlaps neighbours and seals those gaps without showing any line.
  */
-export function stripGuides(svg: SVGSVGElement) {
+function stripGuides(svg: SVGSVGElement) {
   svg.querySelectorAll('line').forEach(el => el.remove());
   svg.querySelectorAll('text').forEach(el => el.remove());
   svg.querySelectorAll('[fill="none"]').forEach(el => el.remove());
@@ -48,6 +48,7 @@ export function stripGuides(svg: SVGSVGElement) {
 
 export function prepareSvgClone(svgEl: SVGSVGElement, opts: DocOptions): SVGSVGElement {
   const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  clone.querySelectorAll('.dieline-editor').forEach(el => el.remove()); // never export edit handles
   if (opts.cleanCut) stripGuides(clone);
   if (opts.cricut) {
     clone.querySelectorAll('rect,path,polygon').forEach(el => {

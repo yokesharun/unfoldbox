@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import { svg2pdf } from 'svg2pdf.js';
 import type { DocOptions } from './exportSVG';
-import { stripGuides } from './exportSVG';
+import { prepareSvgClone } from './exportSVG';
 
 const MM_PER_PX = 0.264583;
 const BLEED_MM = 3;
@@ -52,22 +52,16 @@ export async function exportPDF(svgEl: SVGSVGElement, opts: DocOptions, filename
   const offsetX = opts.pageSize === 'fit' ? extraMm : opts.margin * MM_PER_PX;
   const offsetY = opts.pageSize === 'fit' ? extraMm : opts.margin * MM_PER_PX;
 
-  // For a clean cut file, render a guide-stripped clone (offscreen so svg2pdf can measure it).
-  let renderEl: SVGSVGElement = svgEl;
-  let temp: SVGSVGElement | null = null;
-  if (opts.cleanCut) {
-    temp = svgEl.cloneNode(true) as SVGSVGElement;
-    stripGuides(temp);
-    temp.style.position = 'absolute';
-    temp.style.left = '-99999px';
-    document.body.appendChild(temp);
-    renderEl = temp;
-  }
-
+  // Always render from a prepared clone (strips edit handles; applies cleanCut/cricut).
+  // Appended offscreen so svg2pdf can measure it.
+  const temp = prepareSvgClone(svgEl, opts);
+  temp.style.position = 'absolute';
+  temp.style.left = '-99999px';
+  document.body.appendChild(temp);
   try {
-    await svg2pdf(renderEl, pdf, { x: offsetX, y: offsetY });
+    await svg2pdf(temp, pdf, { x: offsetX, y: offsetY });
   } finally {
-    if (temp) document.body.removeChild(temp);
+    document.body.removeChild(temp);
   }
 
   // Add crop marks around the content area

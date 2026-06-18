@@ -4,7 +4,7 @@ import {
   Typography, Input,
 } from 'antd';
 import { FilePdfOutlined, FileImageOutlined, FileOutlined } from '@ant-design/icons';
-import { exportSVG, stripGuides, DEFAULT_OPTS } from '../../utils/exportSVG';
+import { exportSVG, prepareSvgClone, DEFAULT_OPTS } from '../../utils/exportSVG';
 import type { DocOptions } from '../../utils/exportSVG';
 import { exportPDF } from '../../utils/exportPDF';
 import { exportPNG, exportJPEG } from '../../utils/exportRaster';
@@ -59,8 +59,7 @@ export default function ExportDrawer({ open, onClose, svgRef }: Props) {
     const svg = svgRef.current;
     const vb = svg.viewBox.baseVal;
     if (vb.width && vb.height) setSvgAspect(vb.height / vb.width);
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    if (opts.cleanCut) stripGuides(clone);
+    const clone = prepareSvgClone(svg, opts);
     const str = new XMLSerializer().serializeToString(clone);
     const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);

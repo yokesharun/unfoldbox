@@ -58,7 +58,7 @@ export default function App() {
   const [customiseDrawerOpen, setCustomiseDrawerOpen] = useState(false);
 
   const layout = useBoxGeometry(dims, activeBoxType as BoxType);
-  const { themes, setColor, setImage, resetPanel } = usePanelThemes();
+  const { themes, setColor, setImage, setImageTransform, resetPanel } = usePanelThemes();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -274,6 +274,7 @@ export default function App() {
                           docOpts={docOpts}
                           showLabels={showLabels}
                           showBleed={showBleed}
+                          onImageTransform={setImageTransform}
                         />
                       </div>
                     </div>
@@ -323,6 +324,7 @@ export default function App() {
                   onSelectPanel={setSelectedPanel}
                   setColor={setColor}
                   setImage={setImage}
+                  setImageTransform={setImageTransform}
                   resetPanel={resetPanel}
                   dims={dims}
                 />
@@ -399,6 +401,7 @@ export default function App() {
           onSelectPanel={setSelectedPanel}
           setColor={setColor}
           setImage={setImage}
+          setImageTransform={setImageTransform}
           resetPanel={resetPanel}
           dims={dims}
         />

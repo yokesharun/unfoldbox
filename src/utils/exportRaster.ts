@@ -1,4 +1,4 @@
-import { downloadBlob, stripGuides } from './exportSVG';
+import { downloadBlob, prepareSvgClone } from './exportSVG';
 import type { DocOptions } from './exportSVG';
 
 /**
@@ -9,13 +9,14 @@ import type { DocOptions } from './exportSVG';
 async function svgToCanvas(
   svgEl: SVGSVGElement,
   scale: number,
-  opts: { background?: string; cleanCut?: boolean } = {},
+  opts: DocOptions,
+  background?: string,
 ): Promise<HTMLCanvasElement> {
   const vbW = svgEl.viewBox.baseVal.width || svgEl.clientWidth;
   const vbH = svgEl.viewBox.baseVal.height || svgEl.clientHeight;
 
-  // Clone so we can guarantee explicit size + namespace on the serialised copy.
-  const clone = svgEl.cloneNode(true) as SVGSVGElement;
+  // Shared clone: strips edit handles, applies cleanCut/cricut.
+  const clone = prepareSvgClone(svgEl, opts);
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('width', String(vbW));
   clone.setAttribute('height', String(vbH));
@@ -23,8 +24,6 @@ async function svgToCanvas(
   // a background is explicitly requested (e.g. JPEG, which has no alpha).
   clone.style.background = 'transparent';
   clone.removeAttribute('fill');
-  if (opts.cleanCut) stripGuides(clone);
-  const background = opts.background;
 
   const str = new XMLSerializer().serializeToString(clone);
   const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
@@ -67,14 +66,14 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 
 export async function exportPNG(svgEl: SVGSVGElement, opts: DocOptions, filename = 'unfoldbox') {
   const scale = opts.resolution / 96;
-  const canvas = await svgToCanvas(svgEl, scale, { cleanCut: opts.cleanCut });  // transparent bg
+  const canvas = await svgToCanvas(svgEl, scale, opts);                 // transparent bg
   const blob = await canvasToBlob(canvas, 'image/png');
   downloadBlob(blob, `${filename}.png`);
 }
 
 export async function exportJPEG(svgEl: SVGSVGElement, opts: DocOptions, filename = 'unfoldbox') {
   const scale = opts.resolution / 96;
-  const canvas = await svgToCanvas(svgEl, scale, { background: '#ffffff', cleanCut: opts.cleanCut });
+  const canvas = await svgToCanvas(svgEl, scale, opts, '#ffffff');      // JPEG has no alpha → white bg
   const blob = await canvasToBlob(canvas, 'image/jpeg', 0.92);
   downloadBlob(blob, `${filename}.jpg`);
 }
