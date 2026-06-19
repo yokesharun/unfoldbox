@@ -13,6 +13,7 @@ interface Props {
   docOpts: DocOptions;
   showLabels?: boolean;
   showBleed?: boolean;
+  zoom?: number;
   onImageTransform?: (id: string, partial: Partial<ImgTransform>) => void;
 }
 
@@ -30,7 +31,7 @@ function imgTransform(p: PanelRect, t: ImgTransform = DEFAULT_IMG): string {
 }
 
 const DielineCanvas = forwardRef<SVGSVGElement, Props>(
-  ({ layout, themes, selectedPanel, onSelectPanel, docOpts, showLabels = true, showBleed = false, onImageTransform }, ref) => {
+  ({ layout, themes, selectedPanel, onSelectPanel, docOpts, showLabels = true, showBleed = false, zoom = 1, onImageTransform }, ref) => {
     const { svgWidth, svgHeight, panels, foldLines } = layout;
     const margin = docOpts.margin;
     const gRef = useRef<SVGGElement>(null);
@@ -46,8 +47,8 @@ const DielineCanvas = forwardRef<SVGSVGElement, Props>(
       <svg
         ref={ref}
         viewBox={`0 0 ${svgWidth + margin * 2} ${svgHeight + margin * 2}`}
-        width={svgWidth + margin * 2}
-        height={svgHeight + margin * 2}
+        width={(svgWidth + margin * 2) * zoom}
+        height={(svgHeight + margin * 2) * zoom}
         xmlns="http://www.w3.org/2000/svg"
         style={{ background: '#fff', display: 'block', borderRadius: 4 }}
       >

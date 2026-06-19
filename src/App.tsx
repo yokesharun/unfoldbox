@@ -5,6 +5,7 @@ import {
 import {
   ExportOutlined, BoxPlotOutlined, TagsOutlined, ColumnWidthOutlined, CalculatorOutlined,
   ControlOutlined, BgColorsOutlined, AppstoreOutlined, GoldOutlined, BorderOutlined,
+  ZoomInOutlined, ZoomOutOutlined,
 } from '@ant-design/icons';
 import InputPanel from './components/InputPanel/InputPanel';
 import DielineCanvas from './components/Dieline/DielineCanvas';
@@ -56,12 +57,28 @@ export default function App() {
   const [activeBoxType, setActiveBoxType] = useState('reverse-tuck');
   const [dimsDrawerOpen, setDimsDrawerOpen] = useState(false);
   const [customiseDrawerOpen, setCustomiseDrawerOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const layout = useBoxGeometry(dims, activeBoxType as BoxType);
   const { themes, setColor, setImage, setImageTransform, resetPanel } = usePanelThemes();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  const zoomBy = (f: number) => setZoom(z => Math.min(4, Math.max(0.25, z * f)));
+
+  // Ctrl/Cmd + wheel zoom on the dieline canvas (native non-passive listener so we can preventDefault)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 1.1 : 0.9);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const contentH = isMobile
     ? `calc(100vh - ${HEADER_H}px - ${BOTTOM_BAR_H}px)`
@@ -249,6 +266,15 @@ export default function App() {
                           >
                             {!isMobile && 'Size Calculator'}
                           </Button>
+                          <Button size="small" icon={<ZoomOutOutlined />} onClick={() => zoomBy(1 / 1.2)} />
+                          <Button
+                            size="small"
+                            onClick={() => setZoom(1)}
+                            style={{ minWidth: 48, fontVariantNumeric: 'tabular-nums' }}
+                          >
+                            {Math.round(zoom * 100)}%
+                          </Button>
+                          <Button size="small" icon={<ZoomInOutlined />} onClick={() => zoomBy(1.2)} />
                         </Space>
                       </div>
 
@@ -274,6 +300,7 @@ export default function App() {
                           docOpts={docOpts}
                           showLabels={showLabels}
                           showBleed={showBleed}
+                          zoom={zoom}
                           onImageTransform={setImageTransform}
                         />
                       </div>

@@ -99,12 +99,15 @@ export default function InputPanel({ dims, onChange, boxType = 'reverse-tuck' }:
 
         {numField(isWrapCard ? 'Card Width' : 'Length', 'length', 0.01)}
         {numField(isWrapCard ? 'Wing Width' : 'Width', 'width', 0.01)}
-        {numField(isWrapCard ? 'Panel Height' : 'Height', 'height', 0.01)}
+        {numField(isWrapCard ? 'Back Panel Height' : 'Height', 'height', 0.01)}
 
         {isWrapCard && (
           <>
             {numField('Top Flap Height', 'wrapTopFlap', 0.01)}
             {numField('Bottom Flap Height', 'wrapBottomFlap', 0.01)}
+            <Text style={{ fontSize: 10, color: '#aaa', display: 'block', margin: '-2px 0 8px' }}>
+              Front panel height = back + top flap (auto).
+            </Text>
           </>
         )}
 

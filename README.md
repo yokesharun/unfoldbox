@@ -14,7 +14,8 @@ Two layouts are supported:
 - **Per-panel customisation** — set a background colour or upload artwork (PNG/JPG) per panel.
 - **On-canvas image editing** — after uploading, select a panel and **drag to move**, **corner handle to resize** (aspect-locked), and **top handle to rotate** the image directly on the dieline.
 - **3D preview** — orbit the assembled model; reflects the active layout and panel artwork.
-- **Live dimensions** — change sizes in mm / cm / inch / px; the dieline rescales instantly. Wrap Card exposes card width, panel height, wing width, and top/bottom flap heights.
+- **Canvas zoom** — zoom the flat dieline in/out with the toolbar +/− buttons (click the % to reset) or Ctrl/Cmd + scroll.
+- **Live dimensions** — change sizes in mm / cm / inch / px; the dieline rescales instantly. Wrap Card exposes card width, wing width, back-panel height, and top/bottom flap heights (front-panel height = back + top flap, auto).
 - **Size calculator** — enter product dimensions + tolerance to get a suggested box size.
 - **Toggles** — show/hide panel labels and bleed / safe-zone guides.
 - **Export** — PDF (with crop marks), SVG, Cricut SVG, PNG (transparent), and JPEG. A **"Cut artwork only"** option strips all guide/cut lines and labels for clean cut-ready artwork (seams sealed so no white gaps). Files are named from a project name you choose.
